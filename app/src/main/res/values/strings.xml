@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">ExpenseMeter</string>
+    <string name="app_name" translatable="false">ExpenseMeter</string>
+    <string name="address_text">Bank address</string>
+    <string name="receive_button">Receive SMS</string>
 </resources>

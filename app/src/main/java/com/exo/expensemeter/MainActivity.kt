@@ -8,7 +8,7 @@ import android.Manifest.permission
 import android.Manifest.permission.WRITE_CALENDAR
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
-
+import kotlinx.android.synthetic.main.activity_main.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -17,11 +17,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        println(retrieveSMSInfo("Priorbank"))
+        receiveButton.setOnClickListener {
+            val address = addressText.text
+            println(retrieveSMSInfo(address?.toString() ?: ""))
+        }
+
     }
 
     private fun retrieveSMSInfo(address: String): List<String> {
-
+        //TODO: add permission request
 //        val permissionCheck = ContextCompat.checkSelfPermission(this,
 //                Manifest.permission.READ_SMS)
 //        ActivityCompat.requestPermissions(this,
@@ -32,7 +36,7 @@ class MainActivity : AppCompatActivity() {
         val cursor = contentResolver.query(
                 Telephony.Sms.Inbox.CONTENT_URI,
                 arrayOf(Telephony.Sms.Inbox.BODY, Telephony.Sms.Inbox.ADDRESS),
-                 Telephony.Sms.Inbox.ADDRESS + " = ?",
+                Telephony.Sms.Inbox.ADDRESS + " = ?",
                 arrayOf(address),
                 Telephony.Sms.Inbox.DEFAULT_SORT_ORDER
         )
@@ -45,9 +49,8 @@ class MainActivity : AppCompatActivity() {
                 smsBodies.add(cursor.getString(0))
                 cursor.moveToNext()
             }
-        } else {
-            throw RuntimeException("You have no SMS in Inbox")
         }
+
         cursor.close()
         return smsBodies
     }
