@@ -9,6 +9,11 @@ import android.Manifest.permission.WRITE_CALENDAR
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
+import java.text.DateFormat
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDateTime
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -19,7 +24,23 @@ class MainActivity : AppCompatActivity() {
 
         receiveButton.setOnClickListener {
             val address = addressText.text
-            println(retrieveSMSInfo(address?.toString() ?: ""))
+            val messages = retrieveSMSInfo(address?.toString() ?: "")
+                    .filter { !it.contains("3D-Secure") }
+                    .filter { !it.contains("zachisle", true) }
+                    .filter { !it.contains("bankomat", true) }
+                    .filter { !it.contains("vozvrat", true) }
+                    .filter { !it.contains("schet platezha", true) }
+                    .filter { !it.contains("overdraft", true) }
+                    .filter { !it.contains("Поздравляем", true) }
+                    .map { parse(it) }
+            messages.forEach { println(it) }
+
+
+            result.text = messages
+                    .filter { it.place.contains(wordsToSeek.text.toString(), true)}
+                    .map { if(it.currency.equals("USD")) it.sum * usdRatio.text.toString().toDouble() else it.sum  }
+                    .sumByDouble { it }
+                    .toString()
         }
 
     }
@@ -53,5 +74,24 @@ class MainActivity : AppCompatActivity() {
 
         cursor.close()
         return smsBodies
+    }
+
+    private val dateFormat = SimpleDateFormat("dd-MM-yy HH:mm:ss")
+
+    private fun parse(sms: String): Transaction {
+        println(sms.split(". "))
+
+        val blocks = sms.split(". ")
+
+        val sumParts = blocks[3].split(" ")
+        val sign = if (sumParts[0].equals("Oplata", true)) (-1.0) else 1.0
+
+        return Transaction(
+                card = blocks[1],
+                dateTime = dateFormat.parse(blocks[2]),
+                sum = sign * sumParts[1].toDouble(),
+                currency = sumParts[2],
+                place = blocks[4]
+        )
     }
 }
