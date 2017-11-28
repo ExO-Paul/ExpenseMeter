@@ -9,6 +9,7 @@ import android.Manifest.permission.WRITE_CALENDAR
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
+import java.sql.Date
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -24,28 +25,37 @@ class MainActivity : AppCompatActivity() {
 
         receiveButton.setOnClickListener {
             val address = addressText.text
+
+            val parseDefinition = TransactionParseDefinition(
+                    "Payment",
+                    "Oplata",
+                    ". ",
+                    TransactionType.EXPENSE,
+                    listOf(TransactionField.SKIP, TransactionField.CARD, TransactionField.SKIP, TransactionField.SUM, TransactionField.PLACE)
+            )
+
             val messages = retrieveSMSInfo(address?.toString() ?: "")
-                    .filter { !it.contains("3D-Secure") }
-                    .filter { !it.contains("zachisle", true) }
-                    .filter { !it.contains("bankomat", true) }
-                    .filter { !it.contains("vozvrat", true) }
-                    .filter { !it.contains("schet platezha", true) }
-                    .filter { !it.contains("overdraft", true) }
-                    .filter { !it.contains("Поздравляем", true) }
-                    .map { parse(it) }
+                    .filter { !it.body.contains("3D-Secure") }
+                    .filter { !it.body.contains("zachisle", true) }
+                    .filter { !it.body.contains("bankomat", true) }
+                    .filter { !it.body.contains("vozvrat", true) }
+                    .filter { !it.body.contains("schet platezha", true) }
+                    .filter { !it.body.contains("overdraft", true) }
+                    .filter { !it.body.contains("Поздравляем", true) }
+                    .map { parse(it, parseDefinition) }
             messages.forEach { println(it) }
 
 
             result.text = messages
-                    .filter { it.place.contains(wordsToSeek.text.toString(), true)}
-                    .map { if(it.currency.equals("USD")) it.sum * usdRatio.text.toString().toDouble() else it.sum  }
+                    .filter { it.place.contains(wordsToSeek.text.toString(), true) }
+                    .map { if (it.currency.equals("USD")) it.sum * usdRatio.text.toString().toDouble() else it.sum }
                     .sumByDouble { it }
                     .toString()
         }
 
     }
 
-    private fun retrieveSMSInfo(address: String): List<String> {
+    private fun retrieveSMSInfo(address: String): List<SmsInfo> {
         //TODO: add permission request
 //        val permissionCheck = ContextCompat.checkSelfPermission(this,
 //                Manifest.permission.READ_SMS)
@@ -56,42 +66,44 @@ class MainActivity : AppCompatActivity() {
         val contentResolver = this.contentResolver
         val cursor = contentResolver.query(
                 Telephony.Sms.Inbox.CONTENT_URI,
-                arrayOf(Telephony.Sms.Inbox.BODY, Telephony.Sms.Inbox.ADDRESS),
+                arrayOf(Telephony.Sms.Inbox.BODY, Telephony.Sms.Inbox.DATE),
                 Telephony.Sms.Inbox.ADDRESS + " = ?",
                 arrayOf(address),
                 Telephony.Sms.Inbox.DEFAULT_SORT_ORDER
         )
 
-        val smsBodies = mutableListOf<String>()
+        val smsInfo = mutableListOf<SmsInfo>()
 
         val count = cursor.count
         if (cursor.moveToFirst()) {
             for (i in 0 until count) {
-                smsBodies.add(cursor.getString(0))
+                smsInfo.add(SmsInfo(cursor.getString(0), cursor.getString(1)))
                 cursor.moveToNext()
             }
         }
 
         cursor.close()
-        return smsBodies
+        return smsInfo
     }
 
-    private val dateFormat = SimpleDateFormat("dd-MM-yy HH:mm:ss")
+    data class SmsInfo(val body: String, val date: String)
 
-    private fun parse(sms: String): Transaction {
-        println(sms.split(". "))
+    private fun parse(sms: SmsInfo, parseDefinition: TransactionParseDefinition): Transaction {
+        val blocks = sms.body.split(parseDefinition.fieldDelimiter)
 
-        val blocks = sms.split(". ")
+        val projectionMap = parseDefinition.projection
+                .mapIndexed { index, transactionField -> transactionField to blocks[index] }
+                .toMap()
 
-        val sumParts = blocks[3].split(" ")
-        val sign = if (sumParts[0].equals("Oplata", true)) (-1.0) else 1.0
+
+//        val sumParts = blocks[3].split(" ")
 
         return Transaction(
-                card = blocks[1],
-                dateTime = dateFormat.parse(blocks[2]),
-                sum = sign * sumParts[1].toDouble(),
-                currency = sumParts[2],
-                place = blocks[4]
+                card = projectionMap[TransactionField.CARD] ?: "",
+                dateTime = sms.date,
+                sum = (projectionMap[TransactionField.SUM]?.toDoubleOrNull() ?: 0.0),
+                currency = projectionMap[TransactionField.CURRENCY] ?: "",
+                place = projectionMap[TransactionField.PLACE] ?: ""
         )
     }
 }

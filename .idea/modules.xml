@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/ExpenseMeter.iml" filepath="$PROJECT_DIR$/.idea/ExpenseMeter.iml" />
       <module fileurl="file://$PROJECT_DIR$/ExpenseMeter.iml" filepath="$PROJECT_DIR$/ExpenseMeter.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://D:\GIT\ExpenseMeter\.idea\ExpenseMeter.iml" filepath="D:\GIT\ExpenseMeter\.idea\ExpenseMeter.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>

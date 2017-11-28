@@ -52,7 +52,7 @@
             android:layout_height="36dp"
             android:text="SUM"
             android:textAlignment="center"
-            android:textAppearance="@android:style/TextAppearance.Material.Subhead"/>
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault"/>
     </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>
