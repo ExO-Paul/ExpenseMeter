@@ -8,5 +8,5 @@ public class TransactionParseDefinition (
         val definingWord: String,
         val fieldDelimiter: String,
         val type: TransactionType,
-        val projection: List<TransactionField>
+        val projection: Map<TransactionField, Int>
 )

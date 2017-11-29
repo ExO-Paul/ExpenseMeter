@@ -38,6 +38,15 @@
             android:inputType="numberDecimal"
             />
 
+        <EditText
+            android:id="@+id/rubRatio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:hint="@string/rub_ratio"
+            android:inputType="numberDecimal"
+            />
+
         <Button
             android:id="@+id/receiveButton"
             android:layout_width="match_parent"

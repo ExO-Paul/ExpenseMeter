@@ -31,7 +31,12 @@ class MainActivity : AppCompatActivity() {
                     "Oplata",
                     ". ",
                     TransactionType.EXPENSE,
-                    listOf(TransactionField.SKIP, TransactionField.CARD, TransactionField.SKIP, TransactionField.SUM, TransactionField.PLACE)
+                    mapOf(
+                            TransactionField.CARD to 1,
+                            TransactionField.SUM to 3,
+                            TransactionField.CURRENCY to 3,
+                            TransactionField.PLACE to 4
+                    )
             )
 
             val messages = retrieveSMSInfo(address?.toString() ?: "")
@@ -48,7 +53,13 @@ class MainActivity : AppCompatActivity() {
 
             result.text = messages
                     .filter { it.place.contains(wordsToSeek.text.toString(), true) }
-                    .map { if (it.currency.equals("USD")) it.sum * usdRatio.text.toString().toDouble() else it.sum }
+                    .map {
+                        when (it.currency) {
+                            Currency.USD -> it.sum * usdRatio.text.toString().toDouble()
+                            Currency.RUB -> it.sum * rubRatio.text.toString().toDouble()
+                            else -> it.sum
+                        }
+                    }
                     .sumByDouble { it }
                     .toString()
         }
@@ -92,7 +103,7 @@ class MainActivity : AppCompatActivity() {
         val blocks = sms.body.split(parseDefinition.fieldDelimiter)
 
         val projectionMap = parseDefinition.projection
-                .mapIndexed { index, transactionField -> transactionField to blocks[index] }
+                .map { (transactionField, index) -> transactionField to blocks[index] }
                 .toMap()
 
 
@@ -101,9 +112,24 @@ class MainActivity : AppCompatActivity() {
         return Transaction(
                 card = projectionMap[TransactionField.CARD] ?: "",
                 dateTime = sms.date,
-                sum = (projectionMap[TransactionField.SUM]?.toDoubleOrNull() ?: 0.0),
-                currency = projectionMap[TransactionField.CURRENCY] ?: "",
+                sum = parseDouble(projectionMap[TransactionField.SUM]),
+                currency = parseCurrency(projectionMap[TransactionField.CURRENCY]),
                 place = projectionMap[TransactionField.PLACE] ?: ""
         )
+    }
+
+    private fun parseDouble(stringDouble: String?): Double {
+        return stringDouble
+                ?.replace("[^\\d\\s\\.]+".toRegex(), "")
+                ?.replace(" ".toRegex(), "")
+                ?.toDouble() ?: 0.0
+    }
+
+    private fun parseCurrency(stringCurrency: String?): Currency {
+        return Currency.values()
+                .map { it to stringCurrency?.lastIndexOf(it.name, ignoreCase = true) }
+                .maxBy { it.second ?: -1 }
+                ?.first
+                ?: Currency.BYN
     }
 }
